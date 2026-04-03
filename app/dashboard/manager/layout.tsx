@@ -1,8 +1,12 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 
-// Redireciona para o painel correto com base na role
-export default async function DashboardPage() {
+// Guard: apenas managers acessam rotas /dashboard/manager/*
+export default async function ManagerLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -14,9 +18,9 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single()
 
-  if (!profile) redirect('/login')
+  if (!profile || profile.role !== 'manager') {
+    redirect('/dashboard')
+  }
 
-  if (profile.role === 'manager') redirect('/dashboard/manager')
-
-  redirect('/dashboard/professional')
+  return <>{children}</>
 }
