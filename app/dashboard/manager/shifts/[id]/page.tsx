@@ -27,7 +27,7 @@ export default async function ShiftTriagePage({
   // Busca a vaga com dados do hospital e campos financeiros
   const { data: shift } = await supabase
     .from('shifts')
-    .select('id, date, time_start, time_end, role_needed, value, status, payment_state, total_charged, main_professional_id, hospitals(name)')
+    .select('id, hospital_id, date, time_start, time_end, role_needed, value, status, payment_state, total_charged, main_professional_id, hospitals(name)')
     .eq('id', id)
     .single()
 
