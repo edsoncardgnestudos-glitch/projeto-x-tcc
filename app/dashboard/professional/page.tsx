@@ -284,7 +284,7 @@ export default async function ProfessionalDashboard({
       </div>
 
       {/* ── Conteúdo ── */}
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-5 space-y-4">
+      <main className={`flex-1 w-full px-4 py-5 space-y-4 mx-auto ${currentTab === 'calendario' ? 'max-w-7xl' : 'max-w-lg'}`}>
 
         {/* ── ABA: MURAL DE VAGAS ── */}
         {currentTab === 'vagas' && (
