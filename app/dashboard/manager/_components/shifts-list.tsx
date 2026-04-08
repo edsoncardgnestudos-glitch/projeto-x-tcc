@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Users } from 'lucide-react'
+import CancelShiftButton from './cancel-shift-button'
 
 type Shift = {
   id: string
@@ -9,6 +10,7 @@ type Shift = {
   role_needed: string
   value: number
   status: 'open' | 'filled' | 'completed' | 'canceled'
+  created_at: string
 }
 
 const STATUS_CONFIG = {
@@ -64,11 +66,13 @@ export default function ShiftsList({ shifts }: ShiftsListProps) {
               <th className="px-6 py-3 font-medium">Valor</th>
               <th className="px-6 py-3 font-medium">Status</th>
               <th className="px-6 py-3 font-medium">Triagem</th>
+              <th className="px-6 py-3 font-medium">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {shifts.map((shift) => {
               const status = STATUS_CONFIG[shift.status] ?? STATUS_CONFIG.open
+              const cancellable = shift.status === 'open' || shift.status === 'filled'
               return (
                 <tr key={shift.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-medium text-slate-700">
@@ -97,6 +101,16 @@ export default function ShiftsList({ shifts }: ShiftsListProps) {
                       Ver Candidatos
                     </Link>
                   </td>
+                  <td className="px-6 py-4">
+                    {cancellable && (
+                      <CancelShiftButton
+                        shiftId={shift.id}
+                        shiftDate={shift.date}
+                        shiftTimeStart={shift.time_start}
+                        createdAt={shift.created_at}
+                      />
+                    )}
+                  </td>
                 </tr>
               )
             })}
@@ -108,6 +122,7 @@ export default function ShiftsList({ shifts }: ShiftsListProps) {
       <div className="md:hidden divide-y divide-slate-100">
         {shifts.map((shift) => {
           const status = STATUS_CONFIG[shift.status] ?? STATUS_CONFIG.open
+          const cancellable = shift.status === 'open' || shift.status === 'filled'
           return (
             <div key={shift.id} className="px-4 py-4 flex justify-between items-start">
               <div>
@@ -128,6 +143,14 @@ export default function ShiftsList({ shifts }: ShiftsListProps) {
                   <Users size={12} />
                   Candidatos
                 </Link>
+                {cancellable && (
+                  <CancelShiftButton
+                    shiftId={shift.id}
+                    shiftDate={shift.date}
+                    shiftTimeStart={shift.time_start}
+                    createdAt={shift.created_at}
+                  />
+                )}
               </div>
             </div>
           )

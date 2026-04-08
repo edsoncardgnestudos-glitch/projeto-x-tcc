@@ -49,7 +49,11 @@ CREATE TABLE public.shifts (
   main_professional_id     UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   backup1_professional_id  UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   backup2_professional_id  UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  created_at               TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Cancelamento
+  cancellation_reason      TEXT,
+  cancelled_at             TIMESTAMPTZ,
+  cancellation_type        TEXT CHECK (cancellation_type IN ('free', 'penalized'))
 );
 
 -- ----------------------------------------------------------------

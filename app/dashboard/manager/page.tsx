@@ -49,7 +49,7 @@ export default async function ManagerDashboard() {
       .eq('hospital_id', profile.hospital_id),
     supabase
       .from('shifts')
-      .select('id, date, time_start, time_end, role_needed, value, status')
+      .select('id, date, time_start, time_end, role_needed, value, status, created_at')
       .eq('hospital_id', profile.hospital_id)
       .order('date', { ascending: false })
       .limit(30),

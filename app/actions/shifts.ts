@@ -88,6 +88,86 @@ export async function assignShiftCandidates(
   return { success: true }
 }
 
+/* ------------------------------------------------------------------ */
+/* cancelShift — Gestor cancela um plantão com justificativa           */
+/* ------------------------------------------------------------------ */
+export async function cancelShift(
+  shiftId: string,
+  reason: string,
+): Promise<{ error?: string; success?: boolean }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('hospital_id, role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || profile.role !== 'manager' || !profile.hospital_id) {
+    return { error: 'Acesso negado.' }
+  }
+
+  const { data: shift } = await supabase
+    .from('shifts')
+    .select('id, hospital_id, date, time_start, created_at, status')
+    .eq('id', shiftId)
+    .single()
+
+  if (!shift || shift.hospital_id !== profile.hospital_id) {
+    return { error: 'Plantão não encontrado ou não pertence ao seu hospital.' }
+  }
+
+  if (shift.status === 'canceled') {
+    return { error: 'Este plantão já está cancelado.' }
+  }
+
+  if (shift.status === 'completed') {
+    return { error: 'Não é possível cancelar um plantão já concluído.' }
+  }
+
+  if (!reason || reason.trim().length < 10) {
+    return { error: 'O motivo do cancelamento deve ter ao menos 10 caracteres.' }
+  }
+
+  // Determina o tipo de cancelamento (free | penalized)
+  const now = new Date()
+  const shiftDatetime = new Date(`${shift.date}T${shift.time_start}`)
+  const createdAt = new Date(shift.created_at)
+
+  const hoursUntilShift = (shiftDatetime.getTime() - now.getTime()) / 3_600_000
+  const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / 3_600_000
+  const hoursScheduledInAdvance = (shiftDatetime.getTime() - createdAt.getTime()) / 3_600_000
+
+  let cancellationType: 'free' | 'penalized' = 'penalized'
+
+  if (hoursUntilShift > 168 && hoursUntilShift >= 72) {
+    cancellationType = 'free'
+  } else if (hoursScheduledInAdvance > 48 && hoursUntilShift >= 36) {
+    cancellationType = 'free'
+  } else if (hoursScheduledInAdvance <= 48 && hoursSinceCreation <= 2) {
+    cancellationType = 'free'
+  }
+
+  const { error: updateErr } = await supabase
+    .from('shifts')
+    .update({
+      status:               'canceled',
+      cancellation_reason:  reason.trim(),
+      cancelled_at:         now.toISOString(),
+      cancellation_type:    cancellationType,
+    })
+    .eq('id', shiftId)
+
+  if (updateErr) return { error: updateErr.message }
+
+  revalidatePath('/dashboard/manager')
+  revalidatePath('/dashboard/professional')
+
+  return { success: true }
+}
+
 /**
  * applyForShift — Candidatura de profissional a um plantão.
  * Chamado via .bind(null, shiftId) nas shift cards.
