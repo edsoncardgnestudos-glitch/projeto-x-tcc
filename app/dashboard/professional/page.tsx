@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { signOut } from '@/app/actions/auth'
 import { applyForShift } from '@/app/actions/shifts'
 import SwapRequestDialog from './_components/swap-request-dialog'
+import ProCalendarView, { type ProShift } from './_components/pro-calendar-view'
 import {
   Stethoscope,
   LogOut,
@@ -120,12 +121,13 @@ const STATUS_MAP: Record<
 export default async function ProfessionalDashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; year?: string; month?: string }>
 }) {
-  const { tab } = await searchParams
+  const { tab, year: yearParam, month: monthParam } = await searchParams
   const currentTab =
     tab === 'candidaturas' ? 'candidaturas'
-    : tab === 'escalas' ? 'escalas'
+    : tab === 'escalas'    ? 'escalas'
+    : tab === 'calendario' ? 'calendario'
     : 'vagas'
 
   const supabase = await createClient()
@@ -144,6 +146,9 @@ export default async function ProfessionalDashboard({
   let applications: Application[] = []
   let myShifts: MyShift[]        = []
   let professionals: Professional[] = []
+  let calendarShifts: ProShift[] = []
+  let calYear  = yearParam  ? parseInt(yearParam)  : new Date().getFullYear()
+  let calMonth = monthParam ? parseInt(monthParam) : new Date().getMonth() + 1
 
   if (currentTab === 'vagas') {
     const [{ data: shiftsData }, { data: myApps }] = await Promise.all([
@@ -188,6 +193,37 @@ export default async function ProfessionalDashboard({
     ])
     myShifts      = (myShiftsData ?? []) as unknown as MyShift[]
     professionals = (profsData ?? []) as unknown as Professional[]
+
+  } else if (currentTab === 'calendario') {
+    const firstDay = new Date(calYear, calMonth - 1, 1).toISOString().slice(0, 10)
+    const lastDay  = new Date(calYear, calMonth, 0).toISOString().slice(0, 10)
+
+    const { data: calData } = await supabase
+      .from('shifts')
+      .select('id, date, time_start, time_end, role_needed, value, status, main_professional_id, backup1_professional_id, backup2_professional_id, hospitals(name)')
+      .or(`main_professional_id.eq.${user.id},backup1_professional_id.eq.${user.id},backup2_professional_id.eq.${user.id}`)
+      .gte('date', firstDay)
+      .lte('date', lastDay)
+      .order('date', { ascending: true })
+      .order('time_start', { ascending: true })
+
+    calendarShifts = (calData ?? []).map((s) => {
+      const hospital = s.hospitals as unknown as { name: string } | null
+      const myRole: ProShift['my_role'] =
+        s.main_professional_id   === user.id ? 'titular'  :
+        s.backup1_professional_id === user.id ? 'reserva1' : 'reserva2'
+      return {
+        id:            s.id,
+        date:          s.date,
+        time_start:    s.time_start,
+        time_end:      s.time_end,
+        role_needed:   s.role_needed,
+        value:         s.value,
+        status:        s.status,
+        hospital_name: hospital?.name ?? null,
+        my_role:       myRole,
+      }
+    })
   }
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'Profissional'
@@ -239,7 +275,10 @@ export default async function ProfessionalDashboard({
             Candidaturas
           </TabLink>
           <TabLink href="?tab=escalas" active={currentTab === 'escalas'}>
-            Meus Plantões
+            Plantões
+          </TabLink>
+          <TabLink href="?tab=calendario" active={currentTab === 'calendario'}>
+            Calendário
           </TabLink>
         </div>
       </div>
@@ -283,6 +322,15 @@ export default async function ProfessionalDashboard({
               ))
             )}
           </>
+        )}
+
+        {/* ── ABA: CALENDÁRIO ── */}
+        {currentTab === 'calendario' && (
+          <ProCalendarView
+            year={calYear}
+            month={calMonth}
+            shifts={calendarShifts}
+          />
         )}
 
         {/* ── ABA: MEUS PLANTÕES (ESCALA) ── */}
