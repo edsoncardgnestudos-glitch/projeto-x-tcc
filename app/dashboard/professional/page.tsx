@@ -176,7 +176,7 @@ export default async function ProfessionalDashboard({
       .order('created_at', { ascending: false })
     applications = (data ?? []) as unknown as Application[]
 
-  } else {
+  } else if (currentTab === 'escalas') {
     // escalas: plantões onde sou o titular
     const [{ data: myShiftsData }, { data: profsData }] = await Promise.all([
       supabase
