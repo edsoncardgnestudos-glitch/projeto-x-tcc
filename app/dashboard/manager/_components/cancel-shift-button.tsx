@@ -146,14 +146,9 @@ export default function CancelShiftButton({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <button
-          title="Cancelar plantão"
-          className="inline-flex items-center gap-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium px-2.5 py-1.5 transition-colors"
-        >
-          <Trash2 size={13} />
-          <span className="hidden sm:inline">Cancelar</span>
-        </button>
+      <DialogTrigger className="inline-flex items-center gap-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium px-2.5 py-1.5 transition-colors">
+        <Trash2 size={13} />
+        <span className="hidden sm:inline">Cancelar</span>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-md" showCloseButton>
